@@ -23,9 +23,9 @@ export function createApp() {
     }),
   )
   app.use(express.json({ limit: '1mb' }))
-  app.use('/v1', apiRateLimit, v1Router)
   app.get('/v1/openapi.json', (_req, res) => res.json(buildOpenApiDocument()))
   app.use('/v1/docs', swaggerUi.serve, swaggerUi.setup(buildOpenApiDocument()))
+  app.use('/v1', apiRateLimit, v1Router)
   app.use(notFoundHandler)
   app.use(errorHandler)
   return app
