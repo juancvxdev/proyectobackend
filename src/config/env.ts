@@ -10,6 +10,7 @@ const envSchema = z.object({
   AZURE_CLIENT_ID: z.string().min(1),
   AUTO_MIGRATE: z.coerce.boolean().default(true),
   INTEGRATION_JWT_SECRET: z.string().min(24).default('dev-integration-secret-change-in-production'),
+  TRUST_PROXY_HOPS: z.coerce.number().int().min(0).default(0),
 })
 
 export const env = envSchema.parse(process.env)

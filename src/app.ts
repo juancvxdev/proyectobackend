@@ -2,7 +2,7 @@ import cors from 'cors'
 import express from 'express'
 import helmet from 'helmet'
 import swaggerUi from 'swagger-ui-express'
-import { corsOrigins } from './config/env.js'
+import { corsOrigins, env } from './config/env.js'
 import { errorHandler, notFoundHandler } from './http/errors.js'
 import { apiRateLimit } from './middlewares/rate-limit.js'
 import { buildOpenApiDocument } from './openapi/document.js'
@@ -11,6 +11,7 @@ import { v1Router } from './routes/v1.routes.js'
 export function createApp() {
   const app = express()
   app.disable('x-powered-by')
+  if (env.TRUST_PROXY_HOPS > 0) app.set('trust proxy', env.TRUST_PROXY_HOPS)
   app.use(helmet())
   app.use(
     cors({
