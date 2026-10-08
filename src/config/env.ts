@@ -21,5 +21,17 @@ export const corsOrigins = env.CORS_ORIGIN.split(',')
   .map((origin) => origin.trim())
   .filter(Boolean)
 
+export function isAllowedCorsOrigin(origin: string) {
+  return corsOrigins.some((allowedOrigin) => {
+    if (allowedOrigin === origin) return true
+    if (!allowedOrigin.includes('*')) return false
+    const pattern = allowedOrigin
+      .split('*')
+      .map((part) => part.replace(/[.+?^${}()|[\]\\]/g, '\\$&'))
+      .join('[^.]+')
+    return new RegExp(`^${pattern}$`).test(origin)
+  })
+}
+
 export const azureSwaggerClientId = env.AZURE_SWAGGER_CLIENT_ID ?? env.AZURE_CLIENT_ID
 export const azureApiScope = env.AZURE_API_SCOPE ?? `api://${env.AZURE_CLIENT_ID}/access_as_user`

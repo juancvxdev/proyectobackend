@@ -2,7 +2,7 @@ import cors from 'cors'
 import express from 'express'
 import helmet from 'helmet'
 import swaggerUi from 'swagger-ui-express'
-import { azureApiScope, azureSwaggerClientId, corsOrigins, env } from './config/env.js'
+import { azureApiScope, azureSwaggerClientId, env, isAllowedCorsOrigin } from './config/env.js'
 import { errorHandler, notFoundHandler } from './http/errors.js'
 import { apiRateLimit } from './middlewares/rate-limit.js'
 import { buildOpenApiDocument } from './openapi/document.js'
@@ -27,7 +27,7 @@ export function createApp() {
   app.use(
     cors({
       origin(origin, callback) {
-        if (!origin || corsOrigins.includes(origin)) return callback(null, true)
+        if (!origin || isAllowedCorsOrigin(origin)) return callback(null, true)
         callback(new Error('Origen CORS no permitido.'))
       },
       credentials: true,
