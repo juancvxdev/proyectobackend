@@ -40,6 +40,21 @@ export async function listCases(req: Request, res: Response, next: NextFunction)
   }
 }
 
+export async function summaryMetrics(req: Request, res: Response, next: NextFunction) {
+  try {
+    const result = await serviceFor(req).cases({ page: 1, limit: 100 })
+    const cases = result.items ?? []
+    res.json({
+      total: result.total ?? cases.length,
+      vencidos: cases.filter((item: any) => item.deadlineStatus === 'overdue').length,
+      abiertos: cases.filter((item: any) => !['closed', 'cancelled'].includes(item.status)).length,
+      cerrados: cases.filter((item: any) => item.status === 'closed').length,
+    })
+  } catch (error) {
+    next(error)
+  }
+}
+
 export async function getCase(req: Request, res: Response, next: NextFunction) {
   try {
     res.json(await serviceFor(req).caseById(param(req, 'id')))

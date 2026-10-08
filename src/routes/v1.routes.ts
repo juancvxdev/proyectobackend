@@ -44,33 +44,4 @@ v1Router.patch('/catalogos/categorias/:id', requireRole('admin'), validateBody(u
 v1Router.post('/catalogos/motivos', requireRole('admin'), validateBody(createReasonSchema), controller.createReason)
 v1Router.patch('/catalogos/motivos/:id', requireRole('admin'), validateBody(updateCatalogSchema), controller.updateReason)
 
-v1Router.get('/metricas/resumen', requireRole('admin', 'manager'), async (req, res, next) => {
-  try {
-    const result = await controllerPromise(req, controller.listCases)
-    const cases = result.items ?? []
-    res.json({
-      total: result.total ?? cases.length,
-      vencidos: cases.filter((item: any) => item.deadlineStatus === 'overdue').length,
-      abiertos: cases.filter((item: any) => !['closed', 'cancelled'].includes(item.status)).length,
-      cerrados: cases.filter((item: any) => item.status === 'closed').length,
-    })
-  } catch (error) {
-    next(error)
-  }
-})
-
-async function controllerPromise(req: any, handler: any) {
-  let payload: any
-  await handler(
-    req,
-    {
-      json(value: any) {
-        payload = value
-      },
-    },
-    (error: unknown) => {
-      if (error) throw error
-    },
-  )
-  return payload
-}
+v1Router.get('/metricas/resumen', requireRole('admin', 'manager'), controller.summaryMetrics)
