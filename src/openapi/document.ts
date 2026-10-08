@@ -91,7 +91,7 @@ export function buildOpenApiDocument() {
       version: '1.0.0',
       description: 'Contrato REST versionado para casos, catalogos, usuarios, metricas e integraciones.',
     },
-    servers: [{ url: '/v1' }],
+    servers: [{ url: '/' }],
   })
   document.components = {
     ...document.components,
