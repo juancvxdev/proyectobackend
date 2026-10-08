@@ -13,9 +13,9 @@ export function validateBody<T extends z.ZodTypeAny>(schema: T) {
 }
 
 export function validateQuery<T extends z.ZodTypeAny>(schema: T) {
-  return (req: Request, _res: Response, next: NextFunction) => {
+  return (req: Request, res: Response, next: NextFunction) => {
     try {
-      req.query = schema.parse(req.query) as Request['query']
+      res.locals.validatedQuery = schema.parse(req.query)
       next()
     } catch (error) {
       next(error)

@@ -34,7 +34,7 @@ export async function catalogs(req: Request, res: Response, next: NextFunction) 
 
 export async function listCases(req: Request, res: Response, next: NextFunction) {
   try {
-    res.json(await serviceFor(req).cases(req.query))
+    res.json(await serviceFor(req).cases(res.locals.validatedQuery ?? req.query))
   } catch (error) {
     next(error)
   }
