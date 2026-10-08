@@ -1,4 +1,5 @@
-import { OpenAPIRegistry, OpenApiGeneratorV3 } from '@asteasolutions/zod-to-openapi'
+import { extendZodWithOpenApi, OpenAPIRegistry, OpenApiGeneratorV3 } from '@asteasolutions/zod-to-openapi'
+import { z } from 'zod'
 import {
   catalogNameSchema,
   createCaseSchema,
@@ -10,6 +11,8 @@ import {
   updateCatalogSchema,
   updateUserSchema,
 } from '../dtos/portal.schemas.js'
+
+extendZodWithOpenApi(z)
 
 const registry = new OpenAPIRegistry()
 
