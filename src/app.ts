@@ -19,6 +19,7 @@ export function createApp() {
           'upgrade-insecure-requests': null,
         },
       },
+      crossOriginOpenerPolicy: false,
       strictTransportSecurity: false,
     }),
   )
