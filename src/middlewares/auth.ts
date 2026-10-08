@@ -7,6 +7,7 @@ import { query } from '../repositories/db.js'
 
 const allowedSystemEmails = new Set(['juanjose.cordova@araneda.com.ec', 'paola.suquinagua@araneda.com.ec'])
 const issuer = `https://login.microsoftonline.com/${env.AZURE_TENANT_ID}/v2.0`
+const allowedIssuers = [issuer, `https://sts.windows.net/${env.AZURE_TENANT_ID}/`]
 const jwks = createRemoteJWKSet(new URL(`https://login.microsoftonline.com/${env.AZURE_TENANT_ID}/discovery/v2.0/keys`))
 
 declare global {
@@ -27,7 +28,7 @@ export async function requireAuth(req: Request, _res: Response, next: NextFuncti
     if (!token) throw new HttpError(401, 'Token requerido.', 'UNAUTHORIZED')
 
     const { payload } = await jwtVerify(token, jwks, {
-      issuer,
+      issuer: allowedIssuers,
       audience: env.AZURE_CLIENT_ID,
     })
 
