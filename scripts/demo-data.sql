@@ -198,6 +198,101 @@ join categories cat on cat.case_type = v.type and cat.name = v.category_name
 join areas a on a.name = v.area_name
 left join users_profile up on up.email = 'juanjose.cordova@araneda.com.ec';
 
+with generated_values as (
+  select
+    gs,
+    'DEMO-BULK-' || lpad(gs::text, 3, '0') as case_number,
+    (array['order_increase', 'complaint', 'requirement'])[((gs - 1) % 3) + 1]::case_type as type,
+    (array['Laboratorio Clinico San Rafael', 'Hospital del Norte', 'Distribuidora BioAndes', 'Clinica Santa Lucia'])[((gs - 1) % 4) + 1] as customer_name,
+    (array['Matriz Quito', 'Bodega Central', 'Sucursal Cuenca', 'Recepcion Principal'])[((gs - 1) % 4) + 1] as branch_name,
+    (array['Llamada', 'WhatsApp', 'Correo', 'Portal cliente', 'Gerente'])[((gs - 1) % 5) + 1] as channel_name,
+    (array['Atencion al Cliente', 'Ventas', 'Despacho / Logistica', 'Facturacion', 'Gerencia'])[((gs - 1) % 5) + 1] as area_name,
+    (array['low', 'normal', 'high', 'critical'])[((gs - 1) % 4) + 1]::case_priority as priority,
+    (array['registered', 'assigned', 'in_progress', 'waiting_customer', 'waiting_area', 'responded', 'closed'])[((gs - 1) % 7) + 1]::case_status as status,
+    now() - make_interval(days => ((gs % 12) + 1), hours => (gs % 8)) as reception_at,
+    case
+      when gs % 5 = 0 then now() - make_interval(days => ((gs % 4) + 1))
+      when gs % 3 = 0 then now() + interval '8 hours'
+      else now() + make_interval(days => ((gs % 5) + 1))
+    end as due_at,
+    ((gs % 5) + 1) as sla_days
+  from generate_series(1, 30) as gs
+),
+normalized_values as (
+  select
+    *,
+    case
+      when type = 'order_increase' then (array['Cantidad adicional', 'Producto adicional', 'Urgencia cliente'])[((gs - 1) % 3) + 1]
+      when type = 'complaint' then (array['Entrega / despacho', 'Producto', 'Facturacion'])[((gs - 1) % 3) + 1]
+      else (array['Documentacion', 'Estado de pedido', 'Informacion comercial'])[((gs - 1) % 3) + 1]
+    end as category_name,
+    case
+      when type = 'order_increase' then 'Cliente solicita modificar cantidades o agregar productos al pedido antes de despacho.'
+      when type = 'complaint' then 'Cliente reporta una novedad que requiere revision y respuesta formal.'
+      else 'Cliente solicita informacion, documentacion o confirmacion operativa del pedido.'
+    end as reason_text,
+    case
+      when status = 'closed' then 'fulfilled'::deadline_status
+      when due_at < now() then 'overdue'::deadline_status
+      when due_at < now() + interval '1 day' then 'due_soon'::deadline_status
+      else 'on_time'::deadline_status
+    end as deadline_status,
+    case
+      when status = 'closed' then 'met'::sla_result
+      when due_at < now() then 'missed'::sla_result
+      else 'in_progress'::sla_result
+    end as sla_result,
+    case
+      when status in ('responded', 'closed') then 'Respuesta demo enviada al cliente para evidenciar trazabilidad del caso.'
+      else null
+    end as public_response,
+    case
+      when status = 'closed' then 'Caso demo cerrado para mostrar ciclo completo.'
+      when due_at < now() then 'Caso demo vencido para explicar alertas de SLA.'
+      else 'Caso demo activo para explicar gestion por area responsable.'
+    end as internal_summary
+  from generated_values
+)
+insert into service_cases(
+  case_number, type, customer_id, requester_name, requester_email, branch_id, address,
+  reception_channel_id, dispatched, category_id, reason_text, area_id, priority, sla_days,
+  reception_at, registered_at, due_at, first_response_at, status, sla_result, deadline_status,
+  public_response, internal_summary, created_by, updated_by
+)
+select
+  v.case_number,
+  v.type,
+  c.id,
+  'Solicitante Demo ' || lpad(v.gs::text, 2, '0'),
+  'solicitante.demo' || lpad(v.gs::text, 2, '0') || '@example.com',
+  case when v.type = 'order_increase' then b.id else null end,
+  case when v.type = 'order_increase' then coalesce(b.address, 'Direccion demo') else null end,
+  rc.id,
+  case when v.type = 'order_increase' then (v.gs % 2 = 0) else null end,
+  cat.id,
+  v.reason_text,
+  a.id,
+  v.priority,
+  v.sla_days,
+  v.reception_at,
+  v.reception_at,
+  v.due_at,
+  case when v.status in ('responded', 'closed') then v.reception_at + interval '3 hours' else null end,
+  v.status,
+  v.sla_result,
+  v.deadline_status,
+  v.public_response,
+  v.internal_summary,
+  up.id,
+  up.id
+from normalized_values v
+join customers c on c.name = v.customer_name
+left join branches b on b.customer_id = c.id and b.name = v.branch_name
+join reception_channels rc on rc.name = v.channel_name
+join categories cat on cat.case_type = v.type and cat.name = v.category_name
+join areas a on a.name = v.area_name
+left join users_profile up on up.email = 'juanjose.cordova@araneda.com.ec';
+
 insert into case_followups(case_id, author_id, comment, visibility, created_at)
 select sc.id, up.id, f.comment, f.visibility::followup_visibility, f.created_at
 from service_cases sc
@@ -214,6 +309,21 @@ join (
 ) as f(case_number, comment, visibility, created_at)
   on sc.case_number = f.case_number
 where up.email = 'juanjose.cordova@araneda.com.ec';
+
+insert into case_followups(case_id, author_id, comment, visibility, created_at)
+select sc.id, up.id, 'Seguimiento demo: se revisa el caso y se deja constancia para la trazabilidad.', 'internal', sc.registered_at + interval '2 hours'
+from service_cases sc
+cross join users_profile up
+where sc.case_number like 'DEMO-BULK-%'
+  and up.email = 'juanjose.cordova@araneda.com.ec';
+
+insert into case_followups(case_id, author_id, comment, visibility, created_at)
+select sc.id, up.id, 'Mensaje demo al cliente: su solicitud fue recibida y esta siendo gestionada.', 'customer', sc.registered_at + interval '4 hours'
+from service_cases sc
+cross join users_profile up
+where sc.case_number like 'DEMO-BULK-%'
+  and sc.status in ('waiting_customer', 'responded', 'closed')
+  and up.email = 'juanjose.cordova@araneda.com.ec';
 
 insert into case_status_history(case_id, from_status, to_status, changed_by, comment, created_at)
 select sc.id, h.from_status::case_status, h.to_status::case_status, up.id, h.comment, h.created_at
@@ -234,5 +344,20 @@ join (
 ) as h(case_number, from_status, to_status, comment, created_at)
   on sc.case_number = h.case_number
 where up.email = 'juanjose.cordova@araneda.com.ec';
+
+insert into case_status_history(case_id, from_status, to_status, changed_by, comment, created_at)
+select sc.id, null, 'registered', up.id, 'Caso demo registrado para presentacion academica.', sc.registered_at
+from service_cases sc
+cross join users_profile up
+where sc.case_number like 'DEMO-BULK-%'
+  and up.email = 'juanjose.cordova@araneda.com.ec';
+
+insert into case_status_history(case_id, from_status, to_status, changed_by, comment, created_at)
+select sc.id, 'registered', sc.status, up.id, 'Cambio demo para mostrar avance del flujo de atencion.', sc.registered_at + interval '1 hour'
+from service_cases sc
+cross join users_profile up
+where sc.case_number like 'DEMO-BULK-%'
+  and sc.status <> 'registered'
+  and up.email = 'juanjose.cordova@araneda.com.ec';
 
 commit;
