@@ -39,12 +39,12 @@ export function createApp() {
     '/v1/docs',
     swaggerUi.serve,
     swaggerUi.setup(buildOpenApiDocument(), {
-      oauth: {
-        clientId: azureSwaggerClientId,
-        scopes: azureApiScope,
-        usePkceWithAuthorizationCodeGrant: true,
-      },
       swaggerOptions: {
+        oauth: {
+          clientId: azureSwaggerClientId,
+          scopes: azureApiScope,
+          usePkceWithAuthorizationCodeGrant: true,
+        },
         persistAuthorization: true,
       },
     } as unknown as Parameters<typeof swaggerUi.setup>[1]),
