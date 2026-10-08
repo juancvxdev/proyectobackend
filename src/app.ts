@@ -39,14 +39,15 @@ export function createApp() {
     '/v1/docs',
     swaggerUi.serve,
     swaggerUi.setup(buildOpenApiDocument(), {
-      swaggerOptions: {
-        initOAuth: {
-          clientId: azureSwaggerClientId,
-          scopes: azureApiScope,
-          usePkceWithAuthorizationCodeGrant: true,
-        },
+      oauth: {
+        clientId: azureSwaggerClientId,
+        scopes: azureApiScope,
+        usePkceWithAuthorizationCodeGrant: true,
       },
-    }),
+      swaggerOptions: {
+        persistAuthorization: true,
+      },
+    } as unknown as Parameters<typeof swaggerUi.setup>[1]),
   )
   app.use('/v1', apiRateLimit, v1Router)
   app.use(notFoundHandler)
