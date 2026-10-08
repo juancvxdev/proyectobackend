@@ -2,7 +2,7 @@ import cors from 'cors'
 import express from 'express'
 import helmet from 'helmet'
 import swaggerUi from 'swagger-ui-express'
-import { corsOrigins, env } from './config/env.js'
+import { azureApiScope, azureSwaggerClientId, corsOrigins, env } from './config/env.js'
 import { errorHandler, notFoundHandler } from './http/errors.js'
 import { apiRateLimit } from './middlewares/rate-limit.js'
 import { buildOpenApiDocument } from './openapi/document.js'
@@ -33,7 +33,19 @@ export function createApp() {
   )
   app.use(express.json({ limit: '1mb' }))
   app.get('/v1/openapi.json', (_req, res) => res.json(buildOpenApiDocument()))
-  app.use('/v1/docs', swaggerUi.serve, swaggerUi.setup(buildOpenApiDocument()))
+  app.use(
+    '/v1/docs',
+    swaggerUi.serve,
+    swaggerUi.setup(buildOpenApiDocument(), {
+      swaggerOptions: {
+        initOAuth: {
+          clientId: azureSwaggerClientId,
+          scopes: azureApiScope,
+          usePkceWithAuthorizationCodeGrant: true,
+        },
+      },
+    }),
+  )
   app.use('/v1', apiRateLimit, v1Router)
   app.use(notFoundHandler)
   app.use(errorHandler)

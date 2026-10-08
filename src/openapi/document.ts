@@ -11,10 +11,12 @@ import {
   updateCatalogSchema,
   updateUserSchema,
 } from '../dtos/portal.schemas.js'
+import { azureApiScope, env } from '../config/env.js'
 
 extendZodWithOpenApi(z)
 
 const registry = new OpenAPIRegistry()
+const authenticatedSecurity: Array<Record<string, string[]>> = [{ microsoftOAuth: [azureApiScope] }, { bearerAuth: [] }]
 
 registry.register('CreateCase', createCaseSchema)
 registry.register('UpdateCase', updateCaseSchema)
@@ -30,7 +32,7 @@ registry.registerPath({
   method: 'get',
   path: '/v1/auth/me',
   tags: ['Autenticacion'],
-  security: [{ bearerAuth: [] }],
+  security: authenticatedSecurity,
   responses: { 200: { description: 'Perfil autenticado' }, 401: { description: 'Token invalido' } },
 })
 
@@ -38,7 +40,7 @@ registry.registerPath({
   method: 'get',
   path: '/v1/casos',
   tags: ['Casos'],
-  security: [{ bearerAuth: [] }],
+  security: authenticatedSecurity,
   request: { query: paginationQuerySchema },
   responses: { 200: { description: 'Listado paginado de casos' } },
 })
@@ -47,7 +49,7 @@ registry.registerPath({
   method: 'post',
   path: '/v1/casos',
   tags: ['Casos'],
-  security: [{ bearerAuth: [] }],
+  security: authenticatedSecurity,
   request: { body: { content: { 'application/json': { schema: createCaseSchema } } } },
   responses: { 201: { description: 'Caso creado' }, 422: { description: 'Error de validacion' } },
 })
@@ -56,7 +58,7 @@ registry.registerPath({
   method: 'patch',
   path: '/v1/casos/{id}',
   tags: ['Casos'],
-  security: [{ bearerAuth: [] }],
+  security: authenticatedSecurity,
   request: {
     params: registry.register('IdParam', updateCatalogSchema.pick({ name: true }).extend({ id: updateCatalogSchema.shape.name })),
     body: { content: { 'application/json': { schema: updateCaseSchema } } },
@@ -68,7 +70,7 @@ registry.registerPath({
   method: 'get',
   path: '/v1/catalogos',
   tags: ['Catalogos'],
-  security: [{ bearerAuth: [] }],
+  security: authenticatedSecurity,
   responses: { 200: { description: 'Catalogos operativos' } },
 })
 
@@ -76,7 +78,7 @@ registry.registerPath({
   method: 'get',
   path: '/v1/usuarios',
   tags: ['Usuarios'],
-  security: [{ bearerAuth: [] }],
+  security: authenticatedSecurity,
   responses: { 200: { description: 'Usuarios del portal' }, 403: { description: 'Rol insuficiente' } },
 })
 
@@ -98,6 +100,18 @@ export function buildOpenApiDocument() {
         type: 'http',
         scheme: 'bearer',
         bearerFormat: 'JWT',
+      },
+      microsoftOAuth: {
+        type: 'oauth2',
+        flows: {
+          authorizationCode: {
+            authorizationUrl: `https://login.microsoftonline.com/${env.AZURE_TENANT_ID}/oauth2/v2.0/authorize`,
+            tokenUrl: `https://login.microsoftonline.com/${env.AZURE_TENANT_ID}/oauth2/v2.0/token`,
+            scopes: {
+              [azureApiScope]: 'Acceso a la API Portal de Pedidos Araneda',
+            },
+          },
+        },
       },
     },
   }
