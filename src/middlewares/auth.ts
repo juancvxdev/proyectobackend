@@ -7,7 +7,7 @@ import { query } from '../repositories/db.js'
 
 const allowedSystemEmails = new Set(['juanjose.cordova@araneda.com.ec', 'paola.suquinagua@araneda.com.ec'])
 const issuer = `https://login.microsoftonline.com/${env.AZURE_TENANT_ID}/v2.0`
-const jwks = createRemoteJWKSet(new URL(`${issuer}/discovery/v2.0/keys`))
+const jwks = createRemoteJWKSet(new URL(`https://login.microsoftonline.com/${env.AZURE_TENANT_ID}/discovery/v2.0/keys`))
 
 declare global {
   namespace Express {
