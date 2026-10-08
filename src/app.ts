@@ -16,6 +16,7 @@ export function createApp() {
     helmet({
       contentSecurityPolicy: {
         directives: {
+          'connect-src': ["'self'", 'https://login.microsoftonline.com'],
           'upgrade-insecure-requests': null,
         },
       },
